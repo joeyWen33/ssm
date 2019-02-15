@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="web.mapper.UserMapper">
+              <!--  查询全部信息-->
+		<select id="queryAll" resultType="web.entity.UserEntity">
+			select u_id,u_name,u_passwd,u_age,u_email,u_gender,u_contact,u_address from t_user
+		</select>
+		<!-- 添加用户信息 -->
+		<insert id="insertUser" parameterType="web.entity.UserEntity">
+		insert into t_user(u_name,u_passwd,u_age,u_email,u_gender,u_contact,u_address)values
+		(#{u_name},#{u_passwd},#{u_age},#{u_email},#{u_gender},#{u_contact},#{u_address})
+		</insert>
+		<!-- 查询电话号码 -->
+		<select id="queryContact" parameterType="String" resultType="String">
+		select u_contact from t_user where u_contact=#{u_contact}
+		</select>
+		
+		<!--更新用户信息  -->
+		<update id="updateUser" parameterType="user">
+		update t_user set u_name=#{u_name},u_passwd=#{u_passwd},u_age=#{u_age},u_email=#{u_email},
+		u_gender=#{u_gender},u_contact=#{u_contact},u_address=#{u_address} where u_id=#{u_id}
+		</update>
+		
+		<!-- 查询用户名 做登录用 -->
+		<select id="findByName" parameterType="String" resultType="web.entity.UserEntity">
+		select * from t_user where u_contact=#{u_contact}
+		</select>
+</mapper>

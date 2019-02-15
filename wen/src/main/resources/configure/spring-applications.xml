@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://mybatis.org/schema/mybatis-spring
+        http://mybatis.org/schema/mybatis-spring-1.2.xsd">
+        
+        <!-- 扫描配置文件 -->
+        <context:property-placeholder location="classpath:configure/mysql.properties" ignore-resource-not-found="true"/>
+        
+        <!-- 扫描业务层跟持久层注解 -->
+        <context:component-scan base-package="web.service"/>
+        
+        <!-- 扫描数据源 -->
+        <bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource">
+        	<property name="driverClassName" 	value="${ds.driverClassName}" />
+			<property name="jdbcUrl" 			value="${ds.jdbcUrl}" />
+			<property name="username" 			value="${ds.username}" />
+			<property name="password" 			value="${ds.password}" />
+			<property name="dataSourceProperties">
+				<props >
+					<prop key="cachePrepStmts">${ds.cachePrepStmts}</prop>
+				</props>
+			</property>
+        </bean>
+        
+        <!-- 创建 sessionFactoryBean-->
+        <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        	<property name="dataSource" ref="dataSource"/>
+        	<property name="configLocation" value="classpath:configure/mybaits.xml" />
+      	<property name="mapperLocations" value="classpath:mysql/*.xml"/>
+        </bean>
+        
+        <!-- 配置扫描mapper接口 -->
+        <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        	<property name="basePackage" value="web.mapper"/>
+        	<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+        </bean>
+        
+        <!-- 注册事物管理器 -->
+        <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        	<property name="dataSource" ref="dataSource"/>
+        </bean>
+
+        <!-- 开启申明事务驱动 -->
+        <tx:annotation-driven transaction-manager="transactionManager"/>
+        
+        
+     
+        
+        <!-- 基于form表单的身份验证过滤器 -->
+    <!--     <bean id="formAuthenticationFilter" class="org.apache.shiro.web.filter.authc.FormAuthenticationFilter">
+        <property name="u_name" value="u_name"/>
+        <property name="u_password" value="u_password"/>
+        <property name="loginUrl" value="login.html"/>
+        </bean> -->
+       <!--  安全管理器-->
+        <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="UserRealm"/>
+       <property name="cacheManager" ref="cacheManager"/>
+        </bean>
+        
+               
+        
+        
+        <!--session管理  -->
+        <bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+        <!--  设置全局回话过期时间：默认时间-->
+        <property name="globalSessionTimeout" value="604800000"/>
+        <!--  是否启用sessionIdCokie 默认是启用的-->
+        <property name="sessionIdCookieEnabled" value="true"/>
+        <!--  会话Cookie -->
+        <property name="sessionIdCookie" ref="sessionIdCookie"/>
+        </bean>
+      <!-- 会话cookie模板 -->
+        <bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+        <constructor-arg value="sid"/>
+        <property name="httpOnly" value="true"/>
+        <property name="maxAge" value="-1"/>
+        </bean>
+        
+       <!--   缓存 -->
+        <bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+<!--         <property name="cacheManagerConfigFile" value="classpath:configure/echache.xml"/>
+ -->        </bean>
+        
+        
+        
+          <!-- 自定义Realm实现 -->
+        <bean id="UserRealm" class="web.util.UserRealm">
+        <!-- 加密 -->
+		<property name="credentialsMatcher">
+			<bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+				 <property name="hashAlgorithmName" value="MD5"/> 
+				<property name="hashIterations" value="1024"/>
+			</bean>
+		</property>
+        <!-- 是否启用缓存 -->
+        <property name="cachingEnabled" value="true"/>
+       <!-- 是否启用身份验证缓存 -->
+       <property name="authenticationCachingEnabled" value="true"/>
+       <!--  是否启用授权缓存，缓存AuthorizationInfo 信息-->
+       <property name="authorizationCachingEnabled" value="true"/>
+       <!--  缓存authenticationInfo 信息的缓存名称-->
+       <property name="authorizationCacheName" value="authorizationCache"/>
+        </bean> 
+       
+        <!-- 设置securityManager 的缓存 -->
+<!--         <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="cahceManager" ref="cahceManager"/>
+        </bean> -->
+        <!-- 记住密码 -->
+       <!--  <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="remberMeManager" ref="remberMeManager"/>
+        </bean> -->
+           <!-- shiro 权限 -->
+        <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <!-- shiro 安全管理器 ，所有关于安全的操作都会经过securityManager -->
+        <property name="securityManager" ref="securityManager"/>
+        <!--  系统认证提交的地址，如果用户退出 session丢失就会访问这个页面-->
+      <!--   <property name="loginUrl" value="login"/> -->
+        <!-- 自定义的过滤器链接，从上到下执行，一般将、/**放到最下面 -->
+     <property name="filterChainDefinitions">
+     <value>
+     <!--静态资源不拦截  -->
+  <!--    /static/** = anno
+      登录页面不拦截
+     /login.html = anno
+     表示所有请求都可以通过，不拦截
+     /**=user -->
+     </value>
+     </property>
+        </bean>
+        
+        
+</beans>
